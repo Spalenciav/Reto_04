@@ -43,25 +43,8 @@ class Order:
 
     def calculate_total(self):
         total = 0
-        beverage_count = 0
-        appetizer_count = 0
-        main_course_count = 0
-
         for item, quantity in self.items:
-            if isinstance(item, Beverage):
-                beverage_count += 1
-            elif isinstance(item, Appetizer):
-                appetizer_count += 1
-            elif isinstance(item, MainCourse):
-                main_course_count += 1
-
             total += item.calculate_total(quantity)
-
-        # Aplicar descuento si se pide al menos una bebida, una entrada y un plato principal
-        if beverage_count >= 1 and appetizer_count >= 1 and main_course_count >= 1:
-            discount = total * 0.1
-            total -= discount
-
         return total
 
 
@@ -122,6 +105,48 @@ class Cash(PaymentMethod):
             print(f"Fondos insuficientes. Faltan {amount - self._amount_paid} para completar el pago.")
 
 
+def display_menu(menu_items):
+    print("Menú:")
+    for index, item in enumerate(menu_items, 1):
+        print(f"{index}. {item.name} - {item.price} colones")
+
+
+def select_items(menu_items):
+    order = Order()
+    while True:
+        display_menu(menu_items)
+        choice = input("Seleccione un ítem del menú (o 'q' para terminar): ")
+        if choice.lower() == 'q':
+            break
+        try:
+            choice = int(choice)
+            if 1 <= choice <= len(menu_items):
+                quantity = int(input("Cantidad: "))
+                order.add_item(menu_items[choice - 1], quantity)
+            else:
+                print("Selección inválida.")
+        except ValueError:
+            print("Por favor, ingrese un número válido.")
+    return order
+
+
+def select_payment_method():
+    while True:
+        print("Seleccione método de pago:")
+        print("1. Tarjeta de crédito")
+        print("2. Efectivo")
+        choice = input("Ingrese su elección: ")
+        if choice == "1":
+            number = input("Ingrese el número de tarjeta: ")
+            cvv = input("Ingrese el CVV: ")
+            return Card(number, cvv)
+        elif choice == "2":
+            amount_paid = float(input("Ingrese la cantidad de dinero pagado: "))
+            return Cash(amount_paid)
+        else:
+            print("Opción no válida. Por favor, elija 1 para tarjeta de crédito o 2 para efectivo.")
+
+
 if __name__ == "__main__":
     menu_items = [
         Beverage("Soda", 5000, "Regular"),
@@ -136,10 +161,10 @@ if __name__ == "__main__":
         MainCourse("Pasta Alfredo", 25000, "Pollo")
     ]
 
-    order = Order()
-    order.add_item(menu_items[0], 2)
-    order.add_item(menu_items[3])
-    order.add_item(menu_items[7])
-
+    order = select_items(menu_items)
     total_bill = order.calculate_total()
     print("Total de la factura:", total_bill)
+
+    payment_method = select_payment_method()
+    payment = Payment(total_bill, payment_method)
+    payment.process_payment()
